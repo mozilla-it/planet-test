@@ -55,7 +55,9 @@ def get_planets():
     '''
     get all of the planets that have config.ini
     '''
-    return [planet for planet in os.listdir(PLANETS) if os.path.isfile(PLANETS + planet + '/config.ini')]
+    if os.path.exists(PLANETS):
+        return [planet for planet in os.listdir(PLANETS) if os.path.isfile(PLANETS + planet + '/config.ini')]
+    return []
 
 def pip_reqs_met():
     requirements = open('requirements.txt').read().split('\n')
