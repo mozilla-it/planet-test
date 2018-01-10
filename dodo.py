@@ -11,6 +11,8 @@ from doit.task import clean_targets
 from utils.fmt import fmt
 from utils.shell import call, rglob, globs, which
 
+import pkg_resources
+
 DOIT_CONFIG = {
     'verbosity': 2,
     'default_tasks': ['post'],
@@ -30,7 +32,7 @@ REVISION = os.environ.get('PLANET_CONTENT_REVISION', 'master')
 
 REQS = [
     'git',
-    'curl',
+    'pip',
 ]
 
 def is_cloned():
@@ -55,7 +57,16 @@ def get_inis():
     '''
     return [branch + '/config.ini' for branch in os.listdir(BRANCHES)]
 
-def task_checkreqs():
+def pip_reqs_met():
+    requirements = open('requirements.txt').read().split('\n')
+    try:
+        pkg_resources.require(requirements)
+    except Exception as ex:
+        print(ex)
+        return False
+    return True
+
+def task_reqs():
     '''
     check for required software
     '''
@@ -64,13 +75,18 @@ def task_checkreqs():
             name='check-hash-'+req,
             actions=[(check_hash, (req,))],
         )
+    yield dict(
+        name='requirements.txt',
+        actions=['pip install -r requirements.txt'],
+        uptodate=[pip_reqs_met],
+    )
 
 def task_clone():
     '''
     clone the planet-content repo
     '''
     return dict(
-        task_dep=['checkreqs'],
+        task_dep=['reqs'],
         actions=[
             fmt('git clone {REPOURL}'),
        ],
@@ -94,6 +110,7 @@ def task_test():
     '''
     for ini in get_inis():
         yield dict(
+            task_dep=['checkout'],
             name=ini,
             actions=[fmt('echo {ini}')],
         )
