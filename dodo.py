@@ -25,7 +25,7 @@ except:
 
 REPOROOT = os.path.dirname(os.path.abspath(__file__))
 REPONAME = 'planet-content'
-BRANCHES = fmt('{REPONAME}/branches')
+PLANETS = fmt('{REPONAME}/branches/')
 
 REPOURL = 'https://github.com/mozilla/planet-content'
 REVISION = os.environ.get('PLANET_CONTENT_REVISION', 'master')
@@ -51,11 +51,11 @@ def check_hash(program):
     except CalledProcessError:
         return False
 
-def get_inis():
+def get_planets():
     '''
-    get all of the config.ini files
+    get all of the planets that have config.ini
     '''
-    return [branch + '/config.ini' for branch in os.listdir(BRANCHES)]
+    return [planet for planet in os.listdir(PLANETS) if os.path.isfile(PLANETS + planet + '/config.ini')]
 
 def pip_reqs_met():
     requirements = open('requirements.txt').read().split('\n')
@@ -108,11 +108,11 @@ def task_test():
     '''
     running pytest
     '''
-    for ini in get_inis():
+    for planet in get_planets():
         yield dict(
             task_dep=['checkout'],
-            name=ini,
-            actions=[fmt('echo {ini}')],
+            name=planet,
+            actions=[fmt('pytest -vv -s --ini {PLANETS}{planet}/config.ini tests/')],
         )
 
 def task_tidy():
