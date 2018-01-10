@@ -99,3 +99,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# ignore doit db
+.doit.db
+
+# ignore cloned repo
+planet-content/
