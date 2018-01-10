@@ -79,7 +79,7 @@ def task_reqs():
         )
     yield dict(
         name='requirements.txt',
-        actions=['pip install -r requirements.txt'],
+        actions=['python3 -m pip install -r requirements.txt'],
         uptodate=[pip_reqs_met],
     )
 
