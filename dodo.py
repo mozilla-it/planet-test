@@ -70,28 +70,19 @@ def get_planets(repourl, reponame, revision):
     checkout(reponame, revision)
     return [planet for planet in os.listdir(branches) if os.path.isfile(branches + planet + '/config.ini')]
 
-def pip_reqs_met():
-    requirements = open('requirements.txt').read().split('\n')
-    try:
-        pkg_resources.require(requirements)
-    except Exception as ex:
-        print(ex)
-        return False
-    return True
+def requirements(filename):
+    '''
+    install required pkgs
+    '''
+    reqs = open(filename).read().split('\n')
+    pkg_resources.require(reqs)
 
 def task_reqs():
     '''
-    check for required software
+    install requirements
     '''
-    for req in REQS:
-        yield dict(
-            name='check-hash-'+req,
-            actions=[(check_hash, (req,))],
-        )
-    yield dict(
-        name='requirements.txt',
-        actions=['python3 -m pip install -r requirements.txt'],
-        uptodate=[pip_reqs_met],
+    return dict(
+        actions=[lambda: requirements('requirements.txt')],
     )
 
 def task_test():
@@ -99,9 +90,7 @@ def task_test():
     running pytest
     '''
     planets = get_planets(REPOURL, REPONAME, REVISION)
-    pfmt('planets={planets}')
     for planet in planets:
-        pfmt('planet={planet}')
         yield dict(
             task_dep=['reqs'],
             name=planet,
