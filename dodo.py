@@ -8,10 +8,12 @@ sys.dont_write_bytecode = True
 
 from ruamel import yaml
 from doit.task import clean_targets
-from utils.fmt import fmt
+from utils.fmt import fmt, pfmt
 from utils.shell import call, rglob, globs, which
 
+import requests
 import pkg_resources
+from bs4 import BeautifulSoup
 
 DOIT_CONFIG = {
     'verbosity': 2,
@@ -25,8 +27,6 @@ except:
 
 REPOROOT = os.path.dirname(os.path.abspath(__file__))
 REPONAME = 'planet-content'
-PLANETS = fmt('{REPONAME}/branches/')
-
 REPOURL = 'https://github.com/mozilla/planet-content'
 REVISION = os.environ.get('PLANET_CONTENT_REVISION', 'master')
 
@@ -34,14 +34,6 @@ REQS = [
     'git',
     'pip',
 ]
-
-def is_cloned():
-    '''
-    check if repo is cloned
-    '''
-    if os.path.isdir(REPONAME):
-        return 0 == call(fmt('cd {REPONAME} && git rev-parse --is-inside-work-tree'))[0]
-    return False
 
 def check_hash(program):
     from subprocess import check_call, CalledProcessError, PIPE
@@ -51,13 +43,32 @@ def check_hash(program):
     except CalledProcessError:
         return False
 
-def get_planets():
+def clone(repourl, reponame):
+    '''
+    clone the mozilla/planet-content repo
+    '''
+    if os.path.isdir(reponame):
+        if 0 == call(fmt('cd {reponame} && git rev-parse --is-inside-work-tree'))[0]:
+            return
+        call(fmt('rm -rf {reponame}'))
+    call(fmt('git clone {repourl}'))
+
+def checkout(reponame, revision):
+    '''
+    checkout the appropriate revision
+    '''
+    call(fmt('cd {reponame} && git checkout {revision}'))
+
+def get_planets(repourl, reponame, revision):
     '''
     get all of the planets that have config.ini
     '''
-    if os.path.exists(PLANETS):
-        return [planet for planet in os.listdir(PLANETS) if os.path.isfile(PLANETS + planet + '/config.ini')]
-    return []
+    if not check_hash('git'):
+        raise Exception('git missing')
+    branches = fmt('{reponame}/branches/')
+    clone(repourl, reponame)
+    checkout(reponame, revision)
+    return [planet for planet in os.listdir(branches) if os.path.isfile(branches + planet + '/config.ini')]
 
 def pip_reqs_met():
     requirements = open('requirements.txt').read().split('\n')
@@ -83,38 +94,18 @@ def task_reqs():
         uptodate=[pip_reqs_met],
     )
 
-def task_clone():
-    '''
-    clone the planet-content repo
-    '''
-    return dict(
-        task_dep=['reqs'],
-        actions=[
-            fmt('git clone {REPOURL}'),
-       ],
-       uptodate=[is_cloned],
-    )
-
-def task_checkout():
-    '''
-    checkout the correct revision
-    '''
-    return dict(
-        task_dep=['clone'],
-        actions=[
-            fmt('cd {REPONAME} && git checkout {REVISION}'),
-        ],
-    )
-
 def task_test():
     '''
     running pytest
     '''
-    for planet in get_planets():
+    planets = get_planets(REPOURL, REPONAME, REVISION)
+    pfmt('planets={planets}')
+    for planet in planets:
+        pfmt('planet={planet}')
         yield dict(
-            task_dep=['checkout'],
+            task_dep=['reqs'],
             name=planet,
-            actions=[fmt('pytest -vv -s --ini {PLANETS}{planet}/config.ini tests/')],
+            actions=[fmt('pytest -vv -s --ini {REPONAME}/branches/{planet}/config.ini tests/')],
         )
 
 def task_tidy():
