@@ -85,6 +85,19 @@ def task_reqs():
         actions=[lambda: requirements('requirements.txt')],
     )
 
+def task_show():
+    '''
+    show list of planets found
+    '''
+    def show():
+        planets = get_planets(REPOURL, REPONAME, REVISION)
+        for planet in planets:
+            pfmt('test:{planet}')
+    return dict(
+        actions=[show],
+    )
+
+
 def task_test():
     '''
     running pytest
