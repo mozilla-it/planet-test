@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup
 
 DOIT_CONFIG = {
     'verbosity': 2,
-    'default_tasks': ['post'],
+    'default_tasks': ['test'],
 }
 
 try:
